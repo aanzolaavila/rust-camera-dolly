@@ -50,6 +50,7 @@ type Console = arduino_hal::hal::usart::Usart0<arduino_hal::DefaultClock>;
 static CONSOLE: interrupt::Mutex<RefCell<Option<Console>>> =
     interrupt::Mutex::new(RefCell::new(None));
 
+#[allow(unused_macros)]
 macro_rules! print {
     ($($t:tt)*) => {
         interrupt::free(
@@ -86,6 +87,7 @@ fn main() -> ! {
     let pins = arduino_hal::pins!(dp);
     let serial = arduino_hal::default_serial!(dp, pins, 57600);
     put_console(serial);
+    let mut adc = arduino_hal::Adc::new(dp.ADC, Default::default());
 
     println!("Camera Dolly started ...");
 
@@ -106,6 +108,19 @@ fn main() -> ! {
         pins.d5.into_output().downgrade(),
         pins.d7.into_output().downgrade(),
     ];
+
+    let joy_switch_pin = pins.d10.into_pull_up_input();
+    let joy_x = pins.a0.into_analog_input(&mut adc);
+    let joy_y = pins.a1.into_analog_input(&mut adc);
+
+    while joy_switch_pin.is_high() {
+        let x = joy_x.analog_read(&mut adc);
+        let y = joy_y.analog_read(&mut adc);
+        println!("X: {} Y: {}", x, y);
+        arduino_hal::delay_ms(200);
+    }
+
+    println!("Joy Switch pressed ...");
 
     const CYCLE_PULSES: u32 = 200;
     const PULSE_DELAY: u32 = 500;
