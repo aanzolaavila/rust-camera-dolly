@@ -156,6 +156,7 @@ version = "0.1.0"
 dependencies = [
  "arduino-hal",
  "avr-device",
+ "avr-hal-generic",
  "panic-halt",
  "ufmt",
 ]

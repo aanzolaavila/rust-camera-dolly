@@ -5,6 +5,12 @@ use arduino_hal::hal::port::mode::Output;
 use arduino_hal::port::Pin;
 use arduino_hal::prelude::*;
 
+use crate::dolly::components::arduino::adc_manager::AdcManager;
+use crate::dolly::components::arduino::pins::analog_pin::AnalogInputPin;
+use crate::dolly::components::arduino::pins::digital_pin::DigitalInputPin;
+use crate::dolly::components::joystick::JoystickHAL;
+use crate::dolly::Joystick;
+
 mod dolly;
 mod serial;
 
@@ -76,10 +82,17 @@ fn main() -> ! {
     let joy_x = pins.a0.into_analog_input(&mut adc);
     let joy_y = pins.a1.into_analog_input(&mut adc);
 
-    while joy_switch_pin.is_high() {
-        let x = joy_x.analog_read(&mut adc);
-        let y = joy_y.analog_read(&mut adc);
-        println!("X: {} Y: {}", x, y);
+    AdcManager::initialize(adc);
+
+    let analog_x_pos = AnalogInputPin::new(joy_x.into_channel(), AdcManager::new());
+    let analog_y_pos = AnalogInputPin::new(joy_y.into_channel(), AdcManager::new());
+    let pull_up_switch_pin = DigitalInputPin::new(joy_switch_pin);
+
+    let joystick = JoystickHAL::new(analog_x_pos, analog_y_pos, pull_up_switch_pin);
+
+    while joystick.is_pressed() {
+        let pos = joystick.get_pos();
+        println!("X: {} Y: {}", pos.0, pos.1);
         arduino_hal::delay_ms(200);
     }
 
