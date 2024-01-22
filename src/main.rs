@@ -1,12 +1,19 @@
 #![no_std]
 #![no_main]
+#![feature(abi_avr_interrupt)]
 
-use arduino_hal::hal::port::mode::Output;
+use core::cell::Cell;
+
+use arduino_hal::hal::port::PB3;
 use arduino_hal::port::Pin;
 use arduino_hal::prelude::*;
-use avr_hal_generic::port::mode::Input;
-use avr_hal_generic::port::{mode, PinOps};
+use avr_device::atmega328p::tc0::tccr0b::CS0_A;
+use avr_device::interrupt::Mutex;
+use avr_hal_generic::port::mode::{Floating, Input};
 use dolly::components::arduino::io::{DigitalWrite, State};
+use infrared::protocol::nec::NecCommand;
+use infrared::protocol::Nec;
+use infrared::PeriodicPoll;
 
 use crate::dolly::components::arduino::adc_manager::AdcManager;
 use crate::dolly::components::arduino::pins::analog_pin::AnalogInput;
@@ -54,9 +61,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 /*
 * TODO LIST
+* [x] Implement Switch
+* [ ] Implement IR Remote
+* [ ] Implement LCD Display
 * [ ] Implement Stepper
-* [ ] Implement Potentiometer
-* [ ] Implement Switch
+* [?] Implement Potentiometer
 * */
 
 fn signal_hardware_is_ready(bled: &mut DigitalOutput) {
@@ -70,6 +79,12 @@ fn signal_hardware_is_ready(bled: &mut DigitalOutput) {
     bled.write(State::LOW);
 }
 
+type IrPin = Pin<Input<Floating>, PB3>;
+type IrProto = Nec;
+type IrCmd = NecCommand;
+static mut RECEIVER: Option<PeriodicPoll<IrProto, IrPin>> = None;
+static CMD: Mutex<Cell<Option<IrCmd>>> = Mutex::new(Cell::new(None));
+
 #[arduino_hal::entry]
 fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
@@ -79,6 +94,10 @@ fn main() -> ! {
         serial::put_console(console);
     }
     let mut adc = arduino_hal::Adc::new(dp.ADC, Default::default());
+
+    // TOP = CPU_FREQ / TARGET_FREG / PRESCALER - 1
+    // 16_000_000 / 20_000 / 8 - 1 = 99
+    timer_start(dp.TC0, CS0_A::PRESCALE_8, 99);
 
     println!("Camera Dolly setup ...");
 
@@ -114,58 +133,52 @@ fn main() -> ! {
         DigitalOutput::new(pin.downgrade())
     };
 
-    let mut dolly = dolly::Dolly::new(builtin_led, joystick, in_led, out_led);
+    let mut _dolly = dolly::Dolly::new(builtin_led, joystick, in_led, out_led);
+
+    const POLL_FREQ: u32 = 20_000;
+    let ir = PeriodicPoll::with_pin(POLL_FREQ, pins.d11);
+
+    unsafe { RECEIVER.replace(ir) };
+
+    // Enable interrupts globally
+    unsafe { avr_device::interrupt::enable() };
 
     println!("Started ...");
-
     loop {
-        dolly.run();
-        arduino_hal::delay_ms(32);
+        if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
+            println!(
+                "Cmd: Address: {}, Command: {}, repeat: {}\r",
+                cmd.addr, cmd.cmd, cmd.repeat
+            );
+        }
     }
 
-    // const CYCLE_PULSES: u32 = 200;
-    // const PULSE_DELAY: u32 = 500;
-    //
     // loop {
-    //     set_pins_state(&mut dir_pins, PinState::HIGH);
-    //     builtin_led.set_high();
-    //
-    //     for _ in 0..CYCLE_PULSES {
-    //         set_pins_state(&mut step_pins, PinState::HIGH);
-    //         arduino_hal::delay_us(PULSE_DELAY);
-    //         set_pins_state(&mut step_pins, PinState::LOW);
-    //         arduino_hal::delay_us(PULSE_DELAY);
-    //     }
-    //
-    //     arduino_hal::delay_ms(1000);
-    //
-    //     set_pins_state(&mut dir_pins, PinState::LOW);
-    //     builtin_led.set_low();
-    //     for _ in 0..2 * CYCLE_PULSES {
-    //         set_pins_state(&mut step_pins, PinState::HIGH);
-    //         arduino_hal::delay_us(PULSE_DELAY);
-    //         set_pins_state(&mut step_pins, PinState::LOW);
-    //         arduino_hal::delay_us(PULSE_DELAY);
-    //     }
-    //
-    //     arduino_hal::delay_ms(1000);
+    //     dolly.run();
+    //     arduino_hal::delay_ms(32);
     // }
 }
 
-enum PinState {
-    HIGH,
-    LOW,
+fn timer_start(tc0: arduino_hal::pac::TC0, prescaler: CS0_A, top: u8) {
+    // Configure the timer for the above interval (in CTC mode)
+    tc0.tccr0a.write(|w| w.wgm0().ctc());
+    tc0.ocr0a.write(|w| w.bits(top));
+    tc0.tccr0b.write(|w| w.cs0().variant(prescaler));
+
+    // Enable interrupt
+    tc0.timsk0.write(|w| w.ocie0a().set_bit());
 }
 
-fn set_pins_state(pins: &mut [Pin<Output>], state: PinState) {
-    for p in pins {
-        match state {
-            PinState::HIGH => {
-                p.set_high();
-            }
-            PinState::LOW => {
-                p.set_low();
-            }
-        }
+#[avr_device::interrupt(atmega328p)]
+fn TIMER0_COMPA() {
+    let recv = unsafe { RECEIVER.as_mut().unwrap() };
+
+    if let Ok(Some(cmd)) = recv.poll() {
+        // Command received
+
+        avr_device::interrupt::free(|cs| {
+            let cell = CMD.borrow(cs);
+            cell.set(Some(cmd));
+        });
     }
 }
