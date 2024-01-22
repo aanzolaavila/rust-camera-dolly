@@ -11,6 +11,7 @@ use avr_device::atmega328p::tc0::tccr0b::CS0_A;
 use avr_device::interrupt::Mutex;
 use avr_hal_generic::port::mode::{Floating, Input};
 use dolly::components::arduino::io::{DigitalWrite, State};
+use dolly::components::irremote::IRRemote;
 use infrared::protocol::nec::NecCommand;
 use infrared::protocol::Nec;
 use infrared::PeriodicPoll;
@@ -79,12 +80,6 @@ fn signal_hardware_is_ready(bled: &mut DigitalOutput) {
     bled.write(State::LOW);
 }
 
-type IrPin = Pin<Input<Floating>, PB3>;
-type IrProto = Nec;
-type IrCmd = NecCommand;
-static mut RECEIVER: Option<PeriodicPoll<IrProto, IrPin>> = None;
-static CMD: Mutex<Cell<Option<IrCmd>>> = Mutex::new(Cell::new(None));
-
 #[arduino_hal::entry]
 fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
@@ -135,21 +130,17 @@ fn main() -> ! {
 
     let mut _dolly = dolly::Dolly::new(builtin_led, joystick, in_led, out_led);
 
-    const POLL_FREQ: u32 = 20_000;
-    let ir = PeriodicPoll::with_pin(POLL_FREQ, pins.d11);
+    IRRemote::initialize(pins.d11);
 
-    unsafe { RECEIVER.replace(ir) };
+    let ir = IRRemote::new();
 
     // Enable interrupts globally
     unsafe { avr_device::interrupt::enable() };
 
     println!("Started ...");
     loop {
-        if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
-            println!(
-                "Cmd: Address: {}, Command: {}, repeat: {}\r",
-                cmd.addr, cmd.cmd, cmd.repeat
-            );
+        if let Some(cmd) = ir.get_cmd() {
+            println!("Cmd: {}", cmd);
         }
     }
 
@@ -167,18 +158,4 @@ fn timer_start(tc0: arduino_hal::pac::TC0, prescaler: CS0_A, top: u8) {
 
     // Enable interrupt
     tc0.timsk0.write(|w| w.ocie0a().set_bit());
-}
-
-#[avr_device::interrupt(atmega328p)]
-fn TIMER0_COMPA() {
-    let recv = unsafe { RECEIVER.as_mut().unwrap() };
-
-    if let Ok(Some(cmd)) = recv.poll() {
-        // Command received
-
-        avr_device::interrupt::free(|cs| {
-            let cell = CMD.borrow(cs);
-            cell.set(Some(cmd));
-        });
-    }
 }
