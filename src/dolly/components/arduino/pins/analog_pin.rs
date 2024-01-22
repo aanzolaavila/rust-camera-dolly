@@ -1,17 +1,17 @@
 use crate::dolly::components::arduino::{adc_manager::AdcManager, io::AnalogRead, ChannelType};
 
-pub struct AnalogInputPin {
+pub struct AnalogInput {
     chan: ChannelType,
     adc: AdcManager,
 }
 
-impl AnalogInputPin {
-    pub fn new(chan: ChannelType, adc: AdcManager) -> impl AnalogRead {
+impl AnalogInput {
+    pub fn new(chan: ChannelType, adc: AdcManager) -> Self {
         Self { chan, adc }
     }
 }
 
-impl AnalogRead for AnalogInputPin {
+impl AnalogRead for AnalogInput {
     fn read(&self) -> u16 {
         self.adc.analog_read(&self.chan)
     }

@@ -1,5 +1,10 @@
+pub enum State {
+    HIGH,
+    LOW,
+}
+
 pub trait DigitalRead {
-    fn read(&self) -> bool;
+    fn read(&self) -> State;
 }
 
 pub trait AnalogRead {
@@ -7,7 +12,8 @@ pub trait AnalogRead {
 }
 
 pub trait DigitalWrite {
-    fn write(&mut self, value: bool);
+    fn write(&mut self, value: State);
+    fn toggle(&mut self);
 }
 
 pub trait AnalogWrite {
