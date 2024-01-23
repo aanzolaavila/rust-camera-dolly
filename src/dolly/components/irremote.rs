@@ -1,21 +1,22 @@
-use core::cell::{self, Cell};
+use core::cell::Cell;
 
 use arduino_hal::port::Pin;
 use avr_device::interrupt::Mutex;
 use avr_hal_generic::port::mode::{Floating, Input};
 use infrared::{
-    cmd::Command as _,
     protocol::{nec::NecCommand, Nec},
-    PeriodicPoll,
+    Receiver,
 };
 use ufmt::{uDisplay, uwrite};
+
+use crate::{println, timer::tc0::ClockTC0};
 
 use super::arduino::IRPin;
 
 type IrPin = Pin<Input<Floating>, IRPin>;
 type IrProto = Nec;
 type IrCmd = NecCommand;
-static mut RECEIVER: Option<PeriodicPoll<IrProto, IrPin>> = None;
+static mut RECEIVER: Option<Receiver<IrProto, IrPin>> = None;
 static CMD: Mutex<Cell<Option<IrCmd>>> = Mutex::new(Cell::new(None));
 
 pub struct IRRemote {}
@@ -66,9 +67,7 @@ impl uDisplay for Command {
 
 impl IRRemote {
     pub fn initialize(pin: IrPin) {
-        const POLL_FREQ: u32 = 20_000;
-        let ir = PeriodicPoll::with_pin(POLL_FREQ, pin);
-
+        let ir = Receiver::with_pin(ClockTC0::TARGET_FREQ, pin);
         unsafe { RECEIVER.replace(ir) };
     }
 
@@ -81,56 +80,54 @@ impl IRRemote {
     }
 
     pub fn get_cmd(&self) -> Option<Command> {
-        let r = avr_device::interrupt::free(|cs| {
-            let cell = CMD.borrow(cs);
-            if let Some(cmd) = cell.take() {
-                let ans = match cmd.cmd {
-                    82 => Some(Command::Number(0)),
-                    22 => Some(Command::Number(1)),
-                    25 => Some(Command::Number(2)),
-                    13 => Some(Command::Number(3)),
-                    12 => Some(Command::Number(4)),
-                    24 => Some(Command::Number(5)),
-                    94 => Some(Command::Number(6)),
-                    08 => Some(Command::Number(7)),
-                    28 => Some(Command::Number(8)),
-                    90 => Some(Command::Number(9)),
+        if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
+            println!("Received command");
 
-                    64 => Some(Command::Ok),
+            return match cmd.cmd {
+                82 => Some(Command::Number(0)),
+                22 => Some(Command::Number(1)),
+                25 => Some(Command::Number(2)),
+                13 => Some(Command::Number(3)),
+                12 => Some(Command::Number(4)),
+                24 => Some(Command::Number(5)),
+                94 => Some(Command::Number(6)),
+                08 => Some(Command::Number(7)),
+                28 => Some(Command::Number(8)),
+                90 => Some(Command::Number(9)),
 
-                    68 => Some(Command::Direction(Dir::Left)),
-                    70 => Some(Command::Direction(Dir::Up)),
-                    67 => Some(Command::Direction(Dir::Right)),
-                    21 => Some(Command::Direction(Dir::Down)),
+                64 => Some(Command::Ok),
 
-                    66 => Some(Command::Asterisc),
-                    74 => Some(Command::Numeral),
-                    _ => None,
-                };
+                68 => Some(Command::Direction(Dir::Left)),
+                70 => Some(Command::Direction(Dir::Up)),
+                67 => Some(Command::Direction(Dir::Right)),
+                21 => Some(Command::Direction(Dir::Down)),
 
-                // lets clean it
-                cell.set(None);
+                66 => Some(Command::Asterisc),
+                74 => Some(Command::Numeral),
+                _ => None,
+            };
+        }
 
-                return ans;
-            }
-
-            None
-        });
-
-        r
+        None
     }
 }
 
 #[avr_device::interrupt(atmega328p)]
-fn TIMER0_COMPA() {
+fn PCINT2() {
     let recv = unsafe { RECEIVER.as_mut().unwrap() };
 
-    if let Ok(Some(cmd)) = recv.poll() {
-        // Command received
+    let clock = ClockTC0::new();
+    let now = clock.now();
 
-        avr_device::interrupt::free(|cs| {
-            let cell = CMD.borrow(cs);
-            cell.set(Some(cmd));
-        });
+    match recv.event_instant(now) {
+        Ok(Some(cmd)) => {
+            avr_device::interrupt::free(|cs| {
+                let cell = CMD.borrow(cs);
+                cell.set(Some(cmd));
+            });
+            println!("Some(cmd)");
+        }
+        Ok(None) => (),
+        Err(_) => (),
     }
 }

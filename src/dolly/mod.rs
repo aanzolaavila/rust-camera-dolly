@@ -1,6 +1,9 @@
 use core::ops::Range;
 
-use crate::println;
+use crate::{
+    println,
+    timer::{tc0::ClockTC0, tc1::ClockTC1},
+};
 
 use self::components::{
     arduino::{
@@ -14,6 +17,8 @@ use self::components::{
 pub mod components;
 
 pub struct Settings {
+    pub tc0_clock: ClockTC0,
+    pub tc1_clock: ClockTC1,
     pub irremote: IRRemote,
     pub joystick: Joystick,
     pub builtin_led: DigitalOutput,
@@ -65,7 +70,7 @@ impl Dolly {
     }
 
     pub fn run(&mut self) {
-        // self.cfg.builtin_led.toggle();
+        self.cfg.builtin_led.toggle();
 
         let pos = self.cfg.joystick.get_pos();
         let x = Self::map(pos.0 as i32, (-500, 500), (-200, 200));
@@ -86,6 +91,8 @@ impl Dolly {
             println!("Cmd: {}", cmd);
         }
 
-        arduino_hal::delay_ms(20);
+        println!("Clock TC0: {}", self.cfg.tc0_clock.now());
+        println!("Clock TC1: {}", self.cfg.tc1_clock.now());
+        arduino_hal::delay_ms(1000);
     }
 }

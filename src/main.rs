@@ -2,28 +2,20 @@
 #![no_main]
 #![feature(abi_avr_interrupt)]
 
-use core::cell::Cell;
-
-use arduino_hal::hal::port::PB3;
-use arduino_hal::port::Pin;
-use arduino_hal::prelude::*;
-use avr_device::atmega328p::tc0::tccr0b::CS0_A;
-use avr_device::interrupt::Mutex;
-use avr_hal_generic::port::mode::{Floating, Input};
-use avr_hal_generic::spi::Settings;
+use arduino_hal::{prelude::*, Peripherals};
 use dolly::components::arduino::io::{DigitalWrite, State};
 use dolly::components::irremote::IRRemote;
-use infrared::protocol::nec::NecCommand;
-use infrared::protocol::Nec;
-use infrared::PeriodicPoll;
 
 use crate::dolly::components::arduino::adc_manager::AdcManager;
 use crate::dolly::components::arduino::pins::analog_pin::AnalogInput;
 use crate::dolly::components::arduino::pins::digital_pin::{DigitalInput, DigitalOutput};
 use crate::dolly::components::joystick::Joystick;
+use crate::timer::tc0::ClockTC0;
+use crate::timer::tc1::ClockTC1;
 
 mod dolly;
 mod serial;
+mod timer;
 
 #[cfg(not(doc))]
 #[panic_handler]
@@ -65,6 +57,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 * TODO LIST
 * [x] Implement Switch
 * [x] Implement IR Remote
+* [ ] Implement Clock (millis function equivalent)
 * [ ] Implement LCD Display
 * [ ] Implement Stepper
 * [?] Implement Potentiometer
@@ -81,20 +74,35 @@ fn signal_hardware_is_ready(bled: &mut DigitalOutput) {
     bled.write(State::LOW);
 }
 
-// For IR Remote
-fn timer_start(tc0: arduino_hal::pac::TC0, prescaler: CS0_A, top: u8) {
-    // Configure the timer for the above interval (in CTC mode)
-    tc0.tccr0a.write(|w| w.wgm0().ctc());
-    tc0.ocr0a.write(|w| w.bits(top));
-    tc0.tccr0b.write(|w| w.cs0().variant(prescaler));
+// For IR Remote interrupts
+// Reference: https://github.com/steveio/arduino/blob/master/PinChangeInterrupts/PinChangeInterrupts.ino
+// https://www.arduino.cc/reference/en/language/functions/external-interrupts/attachinterrupt/
+fn configure_interrupts(dp: &Peripherals) {
+    const PCICR_PORTB: u8 = 0b001; // turn on port B (PCINT0 – PCINT7)
+    const PCICR_PORTC: u8 = 0b010; // turn on port C (PCINT8 – PCINT14)
+    const PCICR_PORTD: u8 = 0b100; // turn on port D (PCINT16 – PCINT23)
 
-    // Enable interrupt
-    tc0.timsk0.write(|w| w.ocie0a().set_bit());
+    avr_device::interrupt::free(|_| {
+        // WARNING: Change this if IR Remote port changes
+        // Port D2 (IR Remote is port PD2 / PCINT18)
+        dp.EXINT.pcicr.write(|w| unsafe { w.bits(PCICR_PORTD) });
+        dp.EXINT.pcmsk2.write(|w| w.bits(0b100));
+    })
 }
 
 #[arduino_hal::entry]
 fn main() -> ! {
+    avr_device::interrupt::disable();
+
     let dp = arduino_hal::Peripherals::take().unwrap();
+
+    configure_interrupts(&dp);
+    let tc0_clock = ClockTC0::new();
+    tc0_clock.start(dp.TC0);
+
+    let tc1_clock = ClockTC1::new();
+    tc1_clock.start(dp.TC1);
+
     let pins = arduino_hal::pins!(dp);
     {
         let console = arduino_hal::default_serial!(dp, pins, 57600);
@@ -102,13 +110,9 @@ fn main() -> ! {
     }
     let mut adc = arduino_hal::Adc::new(dp.ADC, Default::default());
 
-    // TOP = CPU_FREQ / TARGET_FREG / PRESCALER - 1
-    // 16_000_000 / 20_000 / 8 - 1 = 99
-    timer_start(dp.TC0, CS0_A::PRESCALE_8, 99);
-
     println!("Camera Dolly setup ...");
 
-    let joy_switch_pin = pins.d10.into_pull_up_input();
+    let joy_switch_pin = pins.d4.into_pull_up_input();
     let joy_x = pins.a0.into_analog_input(&mut adc);
     let joy_y = pins.a1.into_analog_input(&mut adc);
 
@@ -132,18 +136,20 @@ fn main() -> ! {
     signal_hardware_is_ready(&mut builtin_led);
 
     let in_led = {
-        let pin = pins.d9.into_output();
+        let pin = pins.d6.into_output();
         DigitalOutput::new(pin.downgrade())
     };
     let out_led = {
-        let pin = pins.d8.into_output();
+        let pin = pins.d5.into_output();
         DigitalOutput::new(pin.downgrade())
     };
 
-    IRRemote::initialize(pins.d11);
+    IRRemote::initialize(pins.d2);
     let irremote = IRRemote::new();
 
     let settings = dolly::Settings {
+        tc0_clock,
+        tc1_clock,
         irremote,
         joystick,
         builtin_led,
