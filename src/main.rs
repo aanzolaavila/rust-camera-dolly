@@ -10,6 +10,7 @@ use arduino_hal::prelude::*;
 use avr_device::atmega328p::tc0::tccr0b::CS0_A;
 use avr_device::interrupt::Mutex;
 use avr_hal_generic::port::mode::{Floating, Input};
+use avr_hal_generic::spi::Settings;
 use dolly::components::arduino::io::{DigitalWrite, State};
 use dolly::components::irremote::IRRemote;
 use infrared::protocol::nec::NecCommand;
@@ -63,7 +64,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 /*
 * TODO LIST
 * [x] Implement Switch
-* [ ] Implement IR Remote
+* [x] Implement IR Remote
 * [ ] Implement LCD Display
 * [ ] Implement Stepper
 * [?] Implement Potentiometer
@@ -78,6 +79,17 @@ fn signal_hardware_is_ready(bled: &mut DigitalOutput) {
     }
 
     bled.write(State::LOW);
+}
+
+// For IR Remote
+fn timer_start(tc0: arduino_hal::pac::TC0, prescaler: CS0_A, top: u8) {
+    // Configure the timer for the above interval (in CTC mode)
+    tc0.tccr0a.write(|w| w.wgm0().ctc());
+    tc0.ocr0a.write(|w| w.bits(top));
+    tc0.tccr0b.write(|w| w.cs0().variant(prescaler));
+
+    // Enable interrupt
+    tc0.timsk0.write(|w| w.ocie0a().set_bit());
 }
 
 #[arduino_hal::entry]
@@ -128,34 +140,24 @@ fn main() -> ! {
         DigitalOutput::new(pin.downgrade())
     };
 
-    let mut _dolly = dolly::Dolly::new(builtin_led, joystick, in_led, out_led);
-
     IRRemote::initialize(pins.d11);
+    let irremote = IRRemote::new();
 
-    let ir = IRRemote::new();
+    let settings = dolly::Settings {
+        irremote,
+        joystick,
+        builtin_led,
+        in_led,
+        out_led,
+    };
+    let mut dolly = dolly::Dolly::new(settings);
 
     // Enable interrupts globally
     unsafe { avr_device::interrupt::enable() };
 
     println!("Started ...");
+
     loop {
-        if let Some(cmd) = ir.get_cmd() {
-            println!("Cmd: {}", cmd);
-        }
+        dolly.run();
     }
-
-    // loop {
-    //     dolly.run();
-    //     arduino_hal::delay_ms(32);
-    // }
-}
-
-fn timer_start(tc0: arduino_hal::pac::TC0, prescaler: CS0_A, top: u8) {
-    // Configure the timer for the above interval (in CTC mode)
-    tc0.tccr0a.write(|w| w.wgm0().ctc());
-    tc0.ocr0a.write(|w| w.bits(top));
-    tc0.tccr0b.write(|w| w.cs0().variant(prescaler));
-
-    // Enable interrupt
-    tc0.timsk0.write(|w| w.ocie0a().set_bit());
 }

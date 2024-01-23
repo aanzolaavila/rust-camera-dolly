@@ -1,9 +1,10 @@
-use core::cell::Cell;
+use core::cell::{self, Cell};
 
 use arduino_hal::port::Pin;
 use avr_device::interrupt::Mutex;
 use avr_hal_generic::port::mode::{Floating, Input};
 use infrared::{
+    cmd::Command as _,
     protocol::{nec::NecCommand, Nec},
     PeriodicPoll,
 };
@@ -80,45 +81,43 @@ impl IRRemote {
     }
 
     pub fn get_cmd(&self) -> Option<Command> {
-        if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
-            // if cmd.is_repeat() {
-            //     return None;
-            // }
+        let r = avr_device::interrupt::free(|cs| {
+            let cell = CMD.borrow(cs);
+            if let Some(cmd) = cell.take() {
+                let ans = match cmd.cmd {
+                    82 => Some(Command::Number(0)),
+                    22 => Some(Command::Number(1)),
+                    25 => Some(Command::Number(2)),
+                    13 => Some(Command::Number(3)),
+                    12 => Some(Command::Number(4)),
+                    24 => Some(Command::Number(5)),
+                    94 => Some(Command::Number(6)),
+                    08 => Some(Command::Number(7)),
+                    28 => Some(Command::Number(8)),
+                    90 => Some(Command::Number(9)),
 
-            let ans = match cmd.cmd {
-                82 => Some(Command::Number(0)),
-                22 => Some(Command::Number(1)),
-                25 => Some(Command::Number(2)),
-                13 => Some(Command::Number(3)),
-                12 => Some(Command::Number(4)),
-                24 => Some(Command::Number(5)),
-                94 => Some(Command::Number(6)),
-                8 => Some(Command::Number(7)),
-                28 => Some(Command::Number(8)),
-                90 => Some(Command::Number(9)),
+                    64 => Some(Command::Ok),
 
-                64 => Some(Command::Ok),
+                    68 => Some(Command::Direction(Dir::Left)),
+                    70 => Some(Command::Direction(Dir::Up)),
+                    67 => Some(Command::Direction(Dir::Right)),
+                    21 => Some(Command::Direction(Dir::Down)),
 
-                68 => Some(Command::Direction(Dir::Left)),
-                70 => Some(Command::Direction(Dir::Up)),
-                67 => Some(Command::Direction(Dir::Right)),
-                21 => Some(Command::Direction(Dir::Down)),
+                    66 => Some(Command::Asterisc),
+                    74 => Some(Command::Numeral),
+                    _ => None,
+                };
 
-                66 => Some(Command::Asterisc),
-                74 => Some(Command::Numeral),
-                _ => None,
-            };
-
-            // lets clean it
-            avr_device::interrupt::free(|cs| {
-                let cell = CMD.borrow(cs);
+                // lets clean it
                 cell.set(None);
-            });
 
-            return ans;
-        }
+                return ans;
+            }
 
-        None
+            None
+        });
+
+        r
     }
 }
 

@@ -4,13 +4,22 @@ use crate::println;
 
 use self::components::{
     arduino::{
-        io::{AnalogRead, DigitalRead, DigitalWrite, State},
+        io::{DigitalWrite, State},
         pins::digital_pin::DigitalOutput,
     },
+    irremote::IRRemote,
     joystick::Joystick,
 };
 
 pub mod components;
+
+pub struct Settings {
+    pub irremote: IRRemote,
+    pub joystick: Joystick,
+    pub builtin_led: DigitalOutput,
+    pub in_led: DigitalOutput,
+    pub out_led: DigitalOutput,
+}
 
 struct Position {
     slider: i32,
@@ -32,34 +41,13 @@ enum DollyState {
     },
 }
 
-pub struct Dolly<AR, DR>
-where
-    AR: AnalogRead,
-    DR: DigitalRead,
-{
-    joystick: Joystick<AR, DR>,
-    builtin_led: DigitalOutput,
-    in_led: DigitalOutput,
-    out_led: DigitalOutput,
+pub struct Dolly {
+    cfg: Settings,
 }
 
-impl<AR, DR> Dolly<AR, DR>
-where
-    AR: AnalogRead,
-    DR: DigitalRead,
-{
-    pub fn new(
-        builtin_led: DigitalOutput,
-        joystick: Joystick<AR, DR>,
-        in_led: DigitalOutput,
-        out_led: DigitalOutput,
-    ) -> Self {
-        Self {
-            joystick,
-            builtin_led,
-            in_led,
-            out_led,
-        }
+impl Dolly {
+    pub fn new(cfg: Settings) -> Self {
+        Self { cfg }
     }
 
     fn map(value: i32, from_range: (i32, i32), to_range: (i32, i32)) -> i32 {
@@ -77,23 +65,27 @@ where
     }
 
     pub fn run(&mut self) {
-        self.builtin_led.toggle();
+        // self.cfg.builtin_led.toggle();
 
-        let pos = self.joystick.get_pos();
+        let pos = self.cfg.joystick.get_pos();
         let x = Self::map(pos.0 as i32, (-500, 500), (-200, 200));
         let y = Self::map(pos.1 as i32, (-500, 500), (-200, 200));
-        println!("Joystick: ({}, {})", x, y);
+        // println!("Joystick: ({}, {})", x, y);
 
-        if x <= 0 {
-            self.in_led.write(State::LOW);
-        } else {
-            self.in_led.write(State::HIGH);
+        match x > 0 {
+            true => self.cfg.in_led.write(State::HIGH),
+            false => self.cfg.in_led.write(State::LOW),
         }
 
-        if y <= 0 {
-            self.out_led.write(State::LOW);
-        } else {
-            self.out_led.write(State::HIGH);
+        match y > 0 {
+            true => self.cfg.out_led.write(State::HIGH),
+            false => self.cfg.out_led.write(State::LOW),
         }
+
+        if let Some(cmd) = self.cfg.irremote.get_cmd() {
+            println!("Cmd: {}", cmd);
+        }
+
+        arduino_hal::delay_ms(20);
     }
 }
