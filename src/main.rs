@@ -95,7 +95,7 @@ fn main() -> ! {
     avr_device::interrupt::disable();
 
     let dp = arduino_hal::Peripherals::take().unwrap();
-    configure_interrupts(&dp);
+    // configure_interrupts(&dp);
 
     let pins = arduino_hal::pins!(dp);
     {

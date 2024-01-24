@@ -6,18 +6,18 @@ use avr_hal_generic::port::mode::{Floating, Input};
 use infrared::{
     cmd::AddressCommand,
     protocol::{nec::NecCommand, Nec},
-    Receiver,
+    PeriodicPoll, Receiver,
 };
 use ufmt::{uDisplay, uwrite};
 
-use crate::{println, timer::tc0::ClockTC0};
+use crate::println;
 
 use super::arduino::IRPin;
 
 type IrPin = Pin<Input<Floating>, IRPin>;
 type IrProto = Nec;
 type IrCmd = NecCommand;
-static mut RECEIVER: Option<Receiver<IrProto, IrPin>> = None;
+static mut RECEIVER: Option<PeriodicPoll<IrProto, IrPin>> = None;
 static CMD: Mutex<Cell<Option<IrCmd>>> = Mutex::new(Cell::new(None));
 
 pub struct IRRemote {}
@@ -68,7 +68,8 @@ impl uDisplay for Command {
 
 impl IRRemote {
     pub fn initialize(pin: IrPin) {
-        let ir = Receiver::with_pin(ClockTC0::TARGET_FREQ, pin);
+        const POLL_FREQ: u32 = 20_000;
+        let ir = PeriodicPoll::with_pin(POLL_FREQ, pin);
         unsafe { RECEIVER.replace(ir) };
     }
 
@@ -82,8 +83,6 @@ impl IRRemote {
 
     pub fn get_cmd(&self) -> Option<Command> {
         if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
-            println!("Received command: {} {}", cmd.address(), cmd.command());
-
             let ans = match cmd.cmd {
                 82 => Some(Command::Number(0)),
                 22 => Some(Command::Number(1)),
@@ -121,23 +120,15 @@ impl IRRemote {
 }
 
 #[avr_device::interrupt(atmega328p)]
-fn PCINT2() {
+fn TIMER0_COMPA() {
     let recv = unsafe { RECEIVER.as_mut().unwrap() };
-    let now = ClockTC0::nnow();
 
-    let r = recv.event_instant(now);
-    println!("Command received");
-    match r {
-        Ok(Some(cmd)) => {
-            avr_device::interrupt::free(|cs| {
-                let cell = CMD.borrow(cs);
-                // if cell.take().is_none() {
-                cell.set(Some(cmd));
-                // }
-            });
-            println!("Some(cmd)");
-        }
-        Ok(None) => (),
-        Err(_) => (),
+    if let Ok(Some(cmd)) = recv.poll() {
+        // Command received
+
+        avr_device::interrupt::free(|cs| {
+            let cell = CMD.borrow(cs);
+            cell.set(Some(cmd));
+        });
     }
 }

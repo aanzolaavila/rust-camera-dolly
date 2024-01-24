@@ -111,9 +111,9 @@ impl Dolly {
         self.prev_tc0_millis = tc0_clock_millis;
         self.prev_tc1 = tc1_clock;
 
-        println!("Clock TC0: {}", tc0_clock_diff);
-        println!("Clock TC0 millis: {}", tc0_clock_millis_diff);
+        // println!("Clock TC0: {}", tc0_clock_diff);
+        // println!("Clock TC0 millis: {}", tc0_clock_millis_diff);
         println!("Clock TC1: {}", tc1_clock_diff);
-        arduino_hal::delay_ms(10000);
+        arduino_hal::delay_ms(10_000);
     }
 }

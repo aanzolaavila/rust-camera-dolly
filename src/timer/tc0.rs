@@ -15,10 +15,10 @@ static CLOCK_TC0: ClockTC0 = ClockTC0::new();
 
 // TODO: Test with TIMER0, TIMER1, TIMER0 and TIMER1 for implementing this Clock
 
-#[avr_device::interrupt(atmega328p)]
-fn TIMER0_COMPA() {
-    CLOCK_TC0.tick();
-}
+// #[avr_device::interrupt(atmega328p)]
+// fn TIMER0_COMPA() {
+//     CLOCK_TC0.tick();
+// }
 
 pub struct ClockTC0;
 
@@ -77,10 +77,6 @@ impl ClockTC0 {
             "tccr0a: {} | tccr0b: {} | ocr0a: {} | timsk0: {}",
             tccr0a, tccr0b, ocr0a, timsk0
         );
-    }
-
-    pub fn nnow() -> u32 {
-        avr_device::interrupt::free(|cs| COUNTER_MICRO.borrow(cs).get())
     }
 
     pub fn now(&self) -> u32 {

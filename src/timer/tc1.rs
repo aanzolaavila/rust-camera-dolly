@@ -13,8 +13,6 @@ use crate::println;
 static COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 static CLOCK_TC1: ClockTC1 = ClockTC1::new();
 
-// TODO: Test with TIMER0, TIMER1, TIMER0 and TIMER1 for implementing this Clock
-
 #[avr_device::interrupt(atmega328p)]
 fn TIMER1_COMPA() {
     CLOCK_TC1.tick();
@@ -24,13 +22,11 @@ pub struct ClockTC1;
 
 impl ClockTC1 {
     pub const CPU_FREQ: u32 = 16_000_000; // 16 MHz
-    pub const TARGET_FREQ: u32 = 1000;
-    pub const PRESCALER: u32 = 1;
+    pub const TARGET_FREQ: u32 = 2000;
+    pub const PRESCALER: u32 = 8;
     pub const TIMER_COUNTS: u32 = (Self::CPU_FREQ / Self::TARGET_FREQ / Self::PRESCALER) - 1;
-    pub const TIME_PER_OVERFLOW: u32 =
-        Self::PRESCALER * Self::TIMER_COUNTS as u32 / (Self::CPU_FREQ / 1000);
-    // pub const MILLIS_INCREMENT: u32 = 1_000 * Self::PRESCALER * Self::TIMER_COUNTS / Self::CPU_FREQ; //
-    pub const MILLIS_INCREMENT: u32 = 1;
+    pub const CORRECTION: u32 = 2413;
+    pub const INCREMENT: u32 = 1_000_000 / Self::TARGET_FREQ;
 
     pub const fn new() -> Self {
         Self {}
@@ -80,14 +76,14 @@ impl ClockTC1 {
     }
 
     pub fn now(&self) -> u32 {
-        avr_device::interrupt::free(|cs| COUNTER.borrow(cs).get()) / 40 as u32
+        avr_device::interrupt::free(|cs| COUNTER.borrow(cs).get()) / Self::CORRECTION as u32
     }
 
     pub fn tick(&self) {
         avr_device::interrupt::free(|cs| {
             let c = COUNTER.borrow(cs);
             let v = c.get();
-            c.set(v.wrapping_add(Self::MILLIS_INCREMENT));
+            c.set(v.wrapping_add(Self::INCREMENT));
         });
     }
 }
