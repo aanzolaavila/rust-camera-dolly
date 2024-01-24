@@ -4,6 +4,7 @@ use arduino_hal::port::Pin;
 use avr_device::interrupt::Mutex;
 use avr_hal_generic::port::mode::{Floating, Input};
 use infrared::{
+    cmd::AddressCommand,
     protocol::{nec::NecCommand, Nec},
     Receiver,
 };
@@ -81,9 +82,9 @@ impl IRRemote {
 
     pub fn get_cmd(&self) -> Option<Command> {
         if let Some(cmd) = avr_device::interrupt::free(|cs| CMD.borrow(cs).take()) {
-            println!("Received command");
+            println!("Received command: {} {}", cmd.address(), cmd.command());
 
-            return match cmd.cmd {
+            let ans = match cmd.cmd {
                 82 => Some(Command::Number(0)),
                 22 => Some(Command::Number(1)),
                 25 => Some(Command::Number(2)),
@@ -106,6 +107,13 @@ impl IRRemote {
                 74 => Some(Command::Numeral),
                 _ => None,
             };
+
+            // lets clear it
+            // avr_device::interrupt::free(|cs| {
+            //     CMD.borrow(cs).set(None);
+            // });
+
+            return ans;
         }
 
         None
@@ -115,15 +123,17 @@ impl IRRemote {
 #[avr_device::interrupt(atmega328p)]
 fn PCINT2() {
     let recv = unsafe { RECEIVER.as_mut().unwrap() };
+    let now = ClockTC0::nnow();
 
-    let clock = ClockTC0::new();
-    let now = clock.now();
-
-    match recv.event_instant(now) {
+    let r = recv.event_instant(now);
+    println!("Command received");
+    match r {
         Ok(Some(cmd)) => {
             avr_device::interrupt::free(|cs| {
                 let cell = CMD.borrow(cs);
+                // if cell.take().is_none() {
                 cell.set(Some(cmd));
+                // }
             });
             println!("Some(cmd)");
         }

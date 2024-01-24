@@ -48,11 +48,19 @@ enum DollyState {
 
 pub struct Dolly {
     cfg: Settings,
+    prev_tc0: u32,
+    prev_tc0_millis: u32,
+    prev_tc1: u32,
 }
 
 impl Dolly {
     pub fn new(cfg: Settings) -> Self {
-        Self { cfg }
+        Self {
+            cfg,
+            prev_tc0: 0,
+            prev_tc0_millis: 0,
+            prev_tc1: 0,
+        }
     }
 
     fn map(value: i32, from_range: (i32, i32), to_range: (i32, i32)) -> i32 {
@@ -91,8 +99,21 @@ impl Dolly {
             println!("Cmd: {}", cmd);
         }
 
-        println!("Clock TC0: {}", self.cfg.tc0_clock.now());
-        println!("Clock TC1: {}", self.cfg.tc1_clock.now());
-        arduino_hal::delay_ms(1000);
+        let tc0_clock = self.cfg.tc0_clock.now();
+        let tc0_clock_millis = self.cfg.tc0_clock.millis();
+        let tc1_clock = self.cfg.tc1_clock.now();
+
+        let tc0_clock_diff = tc0_clock - self.prev_tc0;
+        let tc0_clock_millis_diff = tc0_clock_millis - self.prev_tc0_millis;
+        let tc1_clock_diff = tc1_clock - self.prev_tc1;
+
+        self.prev_tc0 = tc0_clock;
+        self.prev_tc0_millis = tc0_clock_millis;
+        self.prev_tc1 = tc1_clock;
+
+        println!("Clock TC0: {}", tc0_clock_diff);
+        println!("Clock TC0 millis: {}", tc0_clock_millis_diff);
+        println!("Clock TC1: {}", tc1_clock_diff);
+        arduino_hal::delay_ms(10000);
     }
 }

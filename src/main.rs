@@ -95,13 +95,7 @@ fn main() -> ! {
     avr_device::interrupt::disable();
 
     let dp = arduino_hal::Peripherals::take().unwrap();
-
     configure_interrupts(&dp);
-    let tc0_clock = ClockTC0::new();
-    tc0_clock.start(dp.TC0);
-
-    let tc1_clock = ClockTC1::new();
-    tc1_clock.start(dp.TC1);
 
     let pins = arduino_hal::pins!(dp);
     {
@@ -109,6 +103,18 @@ fn main() -> ! {
         serial::put_console(console);
     }
     let mut adc = arduino_hal::Adc::new(dp.ADC, Default::default());
+
+    let tc0_clock = ClockTC0::new();
+    tc0_clock.start(dp.TC0);
+
+    let tc1_clock = ClockTC1::new();
+    tc1_clock.start(dp.TC1);
+
+    let mut v: i64 = 1_000;
+    v *= ClockTC0::PRESCALER as i64;
+    v *= ClockTC0::TIMER_COUNTS as i64;
+    v /= 16_000;
+    println!("Time delta: {}ms", v);
 
     println!("Camera Dolly setup ...");
 
