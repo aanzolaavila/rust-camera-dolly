@@ -39,16 +39,6 @@ impl ClockTC0 {
             panic!();
         }
 
-        let tccr0a = tc0.tccr0a.read().wgm0().bits();
-        let tccr0b = tc0.tccr0b.read().bits();
-        let ocr0a = tc0.ocr0a.read().bits();
-        let timsk0 = tc0.timsk0.read().bits();
-
-        println!(
-            "tccr0a: {} | tccr0b: {} | ocr0a: {} | timsk0: {}",
-            tccr0a, tccr0b, ocr0a, timsk0
-        );
-
         tc0.tccr0a.reset();
         tc0.tccr0a.reset();
         tc0.tcnt0.reset();
@@ -67,25 +57,10 @@ impl ClockTC0 {
 
         // Enable interrupt
         tc0.timsk0.write(|w| w.ocie0a().set_bit());
-
-        let tccr0a = tc0.tccr0a.read().wgm0().bits();
-        let tccr0b = tc0.tccr0b.read().bits();
-        let ocr0a = tc0.ocr0a.read().bits();
-        let timsk0 = tc0.timsk0.read().bits();
-
-        println!(
-            "tccr0a: {} | tccr0b: {} | ocr0a: {} | timsk0: {}",
-            tccr0a, tccr0b, ocr0a, timsk0
-        );
     }
 
     pub fn now(&self) -> u32 {
         avr_device::interrupt::free(|cs| COUNTER_MICRO.borrow(cs).get())
-    }
-
-    pub fn millis(&self) -> u32 {
-        let v = avr_device::interrupt::free(|cs| COUNTER_MICRO.borrow(cs).get());
-        (v * 1 / 10_000) as u32
     }
 
     pub fn tick(&self) {

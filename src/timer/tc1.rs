@@ -37,16 +37,6 @@ impl ClockTC1 {
             panic!();
         }
 
-        let tccr1a = tc1.tccr1a.read().wgm1().bits();
-        let tccr1b = tc1.tccr1b.read().bits();
-        let ocr1a = tc1.ocr1a.read().bits();
-        let timsk1 = tc1.timsk1.read().bits();
-
-        println!(
-            "tccr1a: {} | tccr1b: {} | ocr1a: {} | timsk1: {}",
-            tccr1a, tccr1b, ocr1a, timsk1
-        );
-
         tc1.tccr1a.reset();
         tc1.tccr1b.reset();
         tc1.tcnt1.reset();
@@ -63,16 +53,6 @@ impl ClockTC1 {
         });
         tc1.ocr1a.write(|w| w.bits(Self::TIMER_COUNTS as u16));
         tc1.timsk1.write(|w| w.ocie1a().set_bit());
-
-        let tccr1a = tc1.tccr1a.read().wgm1().bits();
-        let tccr1b = tc1.tccr1b.read().bits();
-        let ocr1a = tc1.ocr1a.read().bits();
-        let timsk1 = tc1.timsk1.read().bits();
-
-        println!(
-            "tccr1a: {} | tccr1b: {} | ocr1a: {} | timsk1: {}",
-            tccr1a, tccr1b, ocr1a, timsk1
-        );
     }
 
     pub fn now(&self) -> u32 {
