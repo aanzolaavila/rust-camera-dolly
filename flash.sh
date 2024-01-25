@@ -17,7 +17,8 @@ elf_file="$1"
 device="$2"
 
 # Build project
-rustup run nightly cargo build --release
+# rustup run nightly cargo build --release
+docker run -it -v "${PWD}":/usr/src/myapp dolly
 
 # Flash into board
 avrdude -q -patmega328p -carduino -P${device} -D "-Uflash:w:${elf_file}:e"
