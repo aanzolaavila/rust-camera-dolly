@@ -5,6 +5,19 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "rust-camera-dolly"
+test = false
+bench = false
+
+[build-dependencies]
+envmnt = "0.10.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+glob = "0.3"
+cc = "1.0.83"
+bindgen = "0.69.2"
+
 [dependencies]
 panic-halt = "0.2.0"
 ufmt = "0.2.0"

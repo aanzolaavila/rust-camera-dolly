@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(abi_avr_interrupt)]
+#![feature(core_ffi_c)]
 
 use arduino_hal::{prelude::*, Peripherals};
 use dolly::components::arduino::io::{DigitalWrite, State};
@@ -13,9 +14,12 @@ use crate::dolly::components::joystick::Joystick;
 use crate::timer::tc0::ClockTC0;
 use crate::timer::tc1::ClockTC1;
 
+mod arduino;
 mod dolly;
 mod serial;
 mod timer;
+
+use arduino::LiquidCrystal_I2C;
 
 #[cfg(not(doc))]
 #[panic_handler]
@@ -90,9 +94,15 @@ fn configure_interrupts(dp: &Peripherals) {
     })
 }
 
+extern "C" {
+    fn init();
+}
+
 #[arduino_hal::entry]
 fn main() -> ! {
     avr_device::interrupt::disable();
+
+    unsafe { init() };
 
     let dp = arduino_hal::Peripherals::take().unwrap();
     // configure_interrupts(&dp);
@@ -166,6 +176,20 @@ fn main() -> ! {
 
     // Enable interrupts globally
     unsafe { avr_device::interrupt::enable() };
+
+    println!("Configuring LCD ...");
+
+    unsafe {
+        let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
+        lcd.begin(16, 2, 0);
+        lcd.init();
+        lcd.backlight();
+
+        lcd.clear();
+        lcd.printstr("Good morning\0".as_ptr().cast());
+        lcd.setCursor(0, 1);
+        lcd.printstr("from Rust!!\0".as_ptr().cast());
+    }
 
     println!("Started ...");
 
