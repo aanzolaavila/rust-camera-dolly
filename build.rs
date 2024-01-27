@@ -1,9 +1,9 @@
-use std::{collections::HashMap, path::PathBuf};
-
 use bindgen::{Bindings, Builder};
 use cc::Build;
 use glob::glob;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 const CONFIG_FILE: &str = "arduino.yaml";
 
@@ -119,11 +119,6 @@ impl Config {
             let lib_headers = files_in_folder(library.to_string_lossy().as_ref(), "*.h");
             result.extend(lib_headers);
         }
-        println!("results: [{}]", result.len());
-        for r in result.iter() {
-            println!("{}", r.clone().into_os_string().to_string_lossy());
-        }
-
         result
     }
 }
@@ -137,8 +132,14 @@ fn files_in_folder(folder: &str, pattern: &str) -> Vec<PathBuf> {
             results.push(file);
         }
     }
-
     results
+}
+
+pub fn add_source_file(builder: &mut Build, files: Vec<PathBuf>) {
+    for file in files {
+        // println!("cargo:rerun-if-changed={}", file.to_string_lossy());
+        builder.file(file);
+    }
 }
 
 fn configure_arduino(config: &Config) -> Build {
@@ -163,13 +164,6 @@ fn configure_arduino(config: &Config) -> Build {
     builder
 }
 
-pub fn add_source_file(builder: &mut Build, files: Vec<PathBuf>) {
-    for file in files {
-        println!("cargo:rerun-if-changed={}", file.to_string_lossy());
-        builder.file(file);
-    }
-}
-
 fn compile_arduino(config: &Config) {
     let mut builder = configure_arduino(&config);
     builder
@@ -178,15 +172,15 @@ fn compile_arduino(config: &Config) {
         .flag("-fpermissive")
         .flag("-fno-threadsafe-statics");
     add_source_file(&mut builder, config.cpp_files());
+
     builder.compile("libarduino_c++.a");
+    // println!("cargo:rustc-link-lib=static=arduino_c++");
 
     let mut builder = configure_arduino(&config);
     builder.flag("-std=gnu11");
     add_source_file(&mut builder, config.c_files());
     builder.compile("libarduino_c.a");
-
-    println!("cargo:rustc-link-lib=static=arduino_c++");
-    println!("cargo:rustc-link-lib=static=arduino_c");
+    // println!("cargo:rustc-link-lib=static=arduino_c");
 }
 
 fn configure_bindgen_for_arduino(config: &Config) -> Builder {
@@ -198,21 +192,10 @@ fn configure_bindgen_for_arduino(config: &Config) -> Builder {
         builder = builder.clang_arg(flag);
     }
     builder = builder
-        // .clang_arg("-x")
-        .clang_arg("--target=avr")
-        // .clang_arg("--language=c++")
-        // .clang_arg("-std=gnu++11")
         .clang_args(&["-x", "c++", "-std=gnu++11"])
         .use_core()
         .layout_tests(false)
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks));
-
-    for include_dir in config.include_dirs() {
-        builder = builder.clang_arg(&format!("-I{}", include_dir.to_string_lossy()));
-    }
-    for header in config.bindgen_headers() {
-        builder = builder.header(header.to_string_lossy());
-    }
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
 
     for item in &config.bindgen_lists.allowlist_function {
         builder = builder.allowlist_function(item);
@@ -227,13 +210,19 @@ fn configure_bindgen_for_arduino(config: &Config) -> Builder {
         builder = builder.blocklist_type(item);
     }
 
+    for include_dir in config.include_dirs() {
+        builder = builder.clang_arg(&format!("-I{}", include_dir.to_string_lossy()));
+    }
+    for header in config.bindgen_headers() {
+        builder = builder.header(header.to_string_lossy());
+    }
     builder
 }
 
 fn generate_bindings(config: &Config) {
-    let builder = configure_bindgen_for_arduino(&config);
-    dbg!(&builder);
-    let bindings: Bindings = builder.generate().expect("Unable to generate bindings");
+    let bindings: Bindings = configure_bindgen_for_arduino(&config)
+        .generate()
+        .expect("Unable to generate bindings");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("arduino.rs");
@@ -243,7 +232,7 @@ fn generate_bindings(config: &Config) {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed={}", CONFIG_FILE);
+    // println!("cargo:rerun-if-changed={}", CONFIG_FILE);
     let config_string = std::fs::read_to_string(CONFIG_FILE)
         .unwrap_or_else(|e| panic!("Unable to read {} file: {}", CONFIG_FILE, e));
     let config: Config = serde_yaml::from_str(&config_string)
@@ -252,8 +241,6 @@ fn main() {
     println!("Arduino configuration: {:#?}", config);
 
     compile_arduino(&config);
-    println!("Compiled Arduino");
-
     generate_bindings(&config);
-    println!("Generated bindings");
+    // panic!();
 }

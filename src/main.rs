@@ -2,7 +2,6 @@
 #![no_main]
 #![feature(abi_avr_interrupt)]
 #![feature(core_ffi_c)]
-
 use arduino_hal::{prelude::*, Peripherals};
 use dolly::components::arduino::io::{DigitalWrite, State};
 use dolly::components::irremote::IRRemote;
@@ -102,8 +101,6 @@ extern "C" {
 fn main() -> ! {
     avr_device::interrupt::disable();
 
-    unsafe { init() };
-
     let dp = arduino_hal::Peripherals::take().unwrap();
     // configure_interrupts(&dp);
 
@@ -119,12 +116,6 @@ fn main() -> ! {
 
     let tc1_clock = ClockTC1::new();
     tc1_clock.start(dp.TC1);
-
-    let mut v: i64 = 1_000;
-    v *= ClockTC0::PRESCALER as i64;
-    v *= ClockTC0::TIMER_COUNTS as i64;
-    v /= 16_000;
-    println!("Time delta: {}ms", v);
 
     println!("Camera Dolly setup ...");
 
@@ -192,6 +183,8 @@ fn main() -> ! {
     }
 
     println!("Started ...");
+
+    // unsafe { init() };
 
     loop {
         dolly.run();

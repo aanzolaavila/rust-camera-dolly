@@ -5,11 +5,6 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[[bin]]
-name = "rust-camera-dolly"
-test = false
-bench = false
-
 [build-dependencies]
 envmnt = "0.10.4"
 serde = { version = "1.0", features = ["derive"] }
@@ -45,6 +40,6 @@ opt-level = "s"
 [profile.release]
 panic = "abort"
 codegen-units = 1
-debug = true
+debug = false
 lto = true
 opt-level = "s"

@@ -16,6 +16,7 @@
   "llvm-target": "avr-unknown-unknown",
   "max-atomic-width": 8,
   "no-default-libraries": false,
+  "no-builtins": true,
   "pre-link-args": {
     "gcc": [
       "-mmcu=atmega328p",
