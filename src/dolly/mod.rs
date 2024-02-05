@@ -19,7 +19,6 @@ pub mod components;
 pub struct Settings {
     pub tc0_clock: ClockTC0,
     pub tc1_clock: ClockTC1,
-    pub irremote: IRRemote,
     pub joystick: Joystick,
     pub builtin_led: DigitalOutput,
     pub in_led: DigitalOutput,
@@ -85,10 +84,6 @@ impl Dolly {
         match y > 0 {
             true => self.cfg.out_led.write(State::HIGH),
             false => self.cfg.out_led.write(State::LOW),
-        }
-
-        if let Some(cmd) = self.cfg.irremote.get_cmd() {
-            println!("Cmd: {}", cmd);
         }
 
         println!("Current time: {}", self.cfg.tc1_clock.now());

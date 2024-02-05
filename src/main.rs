@@ -13,12 +13,9 @@ use crate::dolly::components::joystick::Joystick;
 use crate::timer::tc0::ClockTC0;
 use crate::timer::tc1::ClockTC1;
 
-mod arduino;
 mod dolly;
 mod serial;
 mod timer;
-
-use arduino::LiquidCrystal_I2C;
 
 #[cfg(not(doc))]
 #[panic_handler]
@@ -151,13 +148,9 @@ fn main() -> ! {
         DigitalOutput::new(pin.downgrade())
     };
 
-    IRRemote::initialize(pins.d2);
-    let irremote = IRRemote::new();
-
     let settings = dolly::Settings {
         tc0_clock,
         tc1_clock,
-        irremote,
         joystick,
         builtin_led,
         in_led,
@@ -167,20 +160,6 @@ fn main() -> ! {
 
     // Enable interrupts globally
     unsafe { avr_device::interrupt::enable() };
-
-    println!("Configuring LCD ...");
-
-    unsafe {
-        let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
-        lcd.begin(16, 2, 0);
-        lcd.init();
-        lcd.backlight();
-
-        lcd.clear();
-        lcd.printstr("Good morning\0".as_ptr().cast());
-        lcd.setCursor(0, 1);
-        lcd.printstr("from Rust!! .l.\0".as_ptr().cast());
-    }
 
     println!("Started ...");
 

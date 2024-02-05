@@ -225,7 +225,10 @@ fn generate_bindings(config: &Config) {
         .expect("Unable to generate bindings");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")
-        .join("arduino.rs");
+        .join("dolly")
+        .join("components")
+        .join("arduino")
+        .join("bindings.rs");
     bindings
         .write_to_file(project_root)
         .expect("Couldn't write bindings!");
