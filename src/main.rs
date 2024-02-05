@@ -179,7 +179,7 @@ fn main() -> ! {
         lcd.clear();
         lcd.printstr("Good morning\0".as_ptr().cast());
         lcd.setCursor(0, 1);
-        lcd.printstr("from Rust!!\0".as_ptr().cast());
+        lcd.printstr("from Rust!! .l.\0".as_ptr().cast());
     }
 
     println!("Started ...");

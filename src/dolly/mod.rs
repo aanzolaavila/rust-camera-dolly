@@ -91,6 +91,8 @@ impl Dolly {
             println!("Cmd: {}", cmd);
         }
 
+        println!("Current time: {}", self.cfg.tc1_clock.now());
+
         arduino_hal::delay_ms(50);
     }
 }
