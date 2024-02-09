@@ -2,4 +2,4 @@
 #![feature(core_ffi_c)]
 
 mod bindings;
-pub mod lcd_display;
+pub mod liquid_crystal;

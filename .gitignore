@@ -1,2 +1,2 @@
 target/
-src/dolly/components/arduino/bindings/**/*
+binding/src/bindings/c_bindings.rs
