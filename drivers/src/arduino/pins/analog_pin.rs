@@ -1,4 +1,4 @@
-use crate::dolly::components::arduino::{adc_manager::AdcManager, io::AnalogRead, ChannelType};
+use crate::arduino::{adc_manager::AdcManager, io::AnalogRead, ChannelType};
 
 pub struct AnalogInput {
     chan: ChannelType,

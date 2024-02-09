@@ -1,35 +1,6 @@
-[package]
-name = "rust-camera-dolly"
-version = "0.1.0"
-edition = "2021"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[build-dependencies]
-envmnt = "0.10.4"
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
-glob = "0.3"
-cc = "1.0.83"
-bindgen = "0.69.2"
-
-[dependencies]
-panic-halt = "0.2.0"
-ufmt = "0.2.0"
-libm = "0.2.8"
-infrared = "0.14.2"
-
-[dependencies.arduino-hal]
-git = "https://github.com/Rahix/avr-hal"
-rev = "8ab27dc"
-features = ["arduino-uno"]
-
-[dependencies.avr-hal-generic]
-git = "https://github.com/Rahix/avr-hal"
-rev = "8ab27dc"
-
-[dependencies.avr-device]
-version = "0.5.3"
+members = ["app", "binding", "drivers", "arduino_core"]
 
 # Configure the build for minimal size - AVRs have very little program memory
 [profile.dev]

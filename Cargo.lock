@@ -26,6 +26,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "arduino_core"
+version = "0.1.0"
+dependencies = [
+ "arduino-hal",
+ "avr-device",
+ "avr-hal-generic",
+]
+
+[[package]]
 name = "atmega-hal"
 version = "0.1.0"
 source = "git+https://github.com/Rahix/avr-hal?rev=8ab27dc#8ab27dcf14538897494898337386a89b68d589c3"
@@ -42,9 +51,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "avr-device"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9caff6ab631ca48909f0b505bd115a7fee718d1281c8f2995a74cfd316b939ae"
+checksum = "546b09da5e933d18b790ccb5aae351371c6c4f8094a7b011dcd7c7e7fb69cc94"
 dependencies = [
  "avr-device-macros",
  "bare-metal",
@@ -54,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "avr-device-macros"
-version = "0.5.3"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d4a6f123cc0e37b3d1099e5fc9a4a2bb7c0475a6c32f2e263d2e8849b9ae8fe"
+checksum = "6b108541dc1ea060dfa9b824acbded94f658f8daecca549144d05a4d01e65b6f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -110,6 +119,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "binding"
+version = "0.1.0"
+dependencies = [
+ "bindgen",
+ "cc",
+ "envmnt",
+ "glob",
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
 name = "bitflags"
 version = "2.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -154,6 +175,19 @@ dependencies = [
  "glob",
  "libc",
  "libloading",
+]
+
+[[package]]
+name = "drivers"
+version = "0.1.0"
+dependencies = [
+ "arduino-hal",
+ "avr-device",
+ "avr-hal-generic",
+ "infrared",
+ "libm",
+ "panic-halt",
+ "ufmt",
 ]
 
 [[package]]
@@ -472,17 +506,13 @@ name = "rust-camera-dolly"
 version = "0.1.0"
 dependencies = [
  "arduino-hal",
+ "arduino_core",
  "avr-device",
  "avr-hal-generic",
- "bindgen",
- "cc",
- "envmnt",
- "glob",
- "infrared",
+ "binding",
+ "drivers",
  "libm",
  "panic-halt",
- "serde",
- "serde_yaml",
  "ufmt",
 ]
 

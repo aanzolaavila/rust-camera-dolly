@@ -10,8 +10,6 @@ use infrared::{
 };
 use ufmt::{uDisplay, uwrite};
 
-use crate::println;
-
 use super::arduino::IRPin;
 
 type IrPin = Pin<Input<Floating>, IRPin>;

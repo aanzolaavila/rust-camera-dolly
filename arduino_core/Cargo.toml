@@ -1,0 +1,17 @@
+[package]
+name = "arduino_core"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies.arduino-hal]
+git = "https://github.com/Rahix/avr-hal"
+rev = "8ab27dc"
+features = ["arduino-uno"]
+
+[dependencies.avr-hal-generic]
+git = "https://github.com/Rahix/avr-hal"
+rev = "8ab27dc"
+
+[dependencies.avr-device]
+version = "0.5.3"

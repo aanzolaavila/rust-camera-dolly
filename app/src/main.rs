@@ -1,21 +1,19 @@
 #![no_std]
 #![no_main]
 #![feature(abi_avr_interrupt)]
-#![feature(core_ffi_c)]
-use arduino_hal::{prelude::*, Peripherals};
-use dolly::components::arduino::io::{DigitalWrite, State};
-use dolly::components::irremote::IRRemote;
 
-use crate::dolly::components::arduino::adc_manager::AdcManager;
-use crate::dolly::components::arduino::pins::analog_pin::AnalogInput;
-use crate::dolly::components::arduino::pins::digital_pin::{DigitalInput, DigitalOutput};
-use crate::dolly::components::joystick::Joystick;
-use crate::timer::tc0::ClockTC0;
-use crate::timer::tc1::ClockTC1;
+use arduino_core::println;
+use arduino_hal::{prelude::*, Peripherals};
+use drivers::arduino::io::{DigitalWrite, State};
+
+use drivers::arduino::adc_manager::AdcManager;
+use drivers::arduino::pins::analog_pin::AnalogInput;
+use drivers::arduino::pins::digital_pin::{DigitalInput, DigitalOutput};
+use drivers::joystick::Joystick;
+use drivers::timer::tc0::ClockTC0;
+use drivers::timer::tc1::ClockTC1;
 
 mod dolly;
-mod serial;
-mod timer;
 
 #[cfg(not(doc))]
 #[panic_handler]
@@ -100,7 +98,7 @@ fn main() -> ! {
     let pins = arduino_hal::pins!(dp);
     {
         let console = arduino_hal::default_serial!(dp, pins, 57600);
-        serial::put_console(console);
+        arduino_core::serial::put_console(console);
     }
     let mut adc = arduino_hal::Adc::new(dp.ADC, Default::default());
 

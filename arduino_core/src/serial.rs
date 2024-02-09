@@ -1,4 +1,6 @@
 use core::cell::RefCell;
+use core::option::Option;
+use core::option::Option::{None, Some};
 
 type Console = arduino_hal::hal::usart::Usart0<arduino_hal::DefaultClock>;
 type Container = avr_device::interrupt::Mutex<RefCell<Option<Console>>>;
@@ -10,7 +12,7 @@ macro_rules! print {
     ($($t:tt)*) => {
         avr_device::interrupt::free(
             |cs| {
-                if let Some(console) = crate::serial::CONSOLE.borrow(cs).borrow_mut().as_mut() {
+                if let Some(console) = arduino_core::serial::CONSOLE.borrow(cs).borrow_mut().as_mut() {
                     let _ = ufmt::uwrite!(console, $($t)*);
                 }
             },
@@ -23,7 +25,7 @@ macro_rules! println {
     ($($t:tt)*) => {
         avr_device::interrupt::free(
             |cs| {
-                if let Some(console) = crate::serial::CONSOLE.borrow(cs).borrow_mut().as_mut() {
+                if let Some(console) = arduino_core::serial::CONSOLE.borrow(cs).borrow_mut().as_mut() {
                     let _ = ufmt::uwriteln!(console, $($t)*);
                 }
             },

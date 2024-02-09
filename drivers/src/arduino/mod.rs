@@ -5,7 +5,6 @@ use avr_hal_generic::{
 };
 
 pub mod adc_manager;
-pub mod bindings;
 pub mod io;
 pub mod pins;
 

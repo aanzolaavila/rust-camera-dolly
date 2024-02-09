@@ -1,0 +1,24 @@
+[package]
+name = "rust-camera-dolly"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+drivers = { path = "../drivers" }
+binding = { path = "../binding" }
+arduino_core = { path = "../arduino_core" }
+panic-halt = "0.2.0"
+ufmt = "0.2.0"
+libm = "0.2.8"
+
+[dependencies.arduino-hal]
+git = "https://github.com/Rahix/avr-hal"
+rev = "8ab27dc"
+features = ["arduino-uno"]
+
+[dependencies.avr-hal-generic]
+git = "https://github.com/Rahix/avr-hal"
+rev = "8ab27dc"
+
+[dependencies.avr-device]
+version = "0.5.3"

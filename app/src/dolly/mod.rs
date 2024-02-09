@@ -1,20 +1,15 @@
 use core::ops::Range;
 
-use crate::{
-    println,
-    timer::{tc0::ClockTC0, tc1::ClockTC1},
-};
+use arduino_core::println;
 
-use self::components::{
+use drivers::{
     arduino::{
         io::{DigitalWrite, State},
         pins::digital_pin::DigitalOutput,
     },
-    irremote::IRRemote,
     joystick::Joystick,
+    timer::{tc0::ClockTC0, tc1::ClockTC1},
 };
-
-pub mod components;
 
 pub struct Settings {
     pub tc0_clock: ClockTC0,

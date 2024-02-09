@@ -225,9 +225,6 @@ fn generate_bindings(config: &Config) {
         .expect("Unable to generate bindings");
     let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("src")
-        .join("dolly")
-        .join("components")
-        .join("arduino")
         .join("bindings")
         .join("c_bindings.rs");
     bindings

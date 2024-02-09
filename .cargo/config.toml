@@ -1,5 +1,4 @@
 [unstable]
-# features = ["host_dep"]
 build-std = ["core"]
 
 [build]

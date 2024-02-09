@@ -1,7 +1,7 @@
 use arduino_hal::port::Pin;
 use avr_hal_generic::port::mode::{Input, Output};
 
-use crate::dolly::components::arduino::io::{DigitalRead, DigitalWrite, State};
+use crate::arduino::io::{DigitalRead, DigitalWrite, State};
 
 pub struct DigitalInput {
     pin: Pin<Input>,

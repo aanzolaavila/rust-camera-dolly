@@ -8,8 +8,6 @@ use core::cell::Cell;
 
 use avr_device::interrupt::Mutex;
 
-use crate::println;
-
 static COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 static CLOCK_TC1: ClockTC1 = ClockTC1::new();
 
