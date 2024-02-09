@@ -4,7 +4,7 @@
 
 use arduino_core::println;
 use arduino_hal::{prelude::*, Peripherals};
-use binding::bindings::c_bindings::LiquidCrystal_I2C;
+use binding::liquid_crystal;
 use drivers::arduino::io::{DigitalWrite, State};
 
 use drivers::arduino::adc_manager::AdcManager;
@@ -158,17 +158,33 @@ fn main() -> ! {
 
     println!("Configuring LCD ...");
 
-    unsafe {
-        let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
-        lcd.begin(16, 2, 0);
-        lcd.init();
-        lcd.backlight();
-
-        lcd.clear();
-        lcd.printstr("Good morning\0".as_ptr().cast());
-        lcd.setCursor(0, 1);
-        lcd.printstr("from Rust!! .L.\0".as_ptr().cast());
+    let mut lcd = liquid_crystal::LiquidCrystal::new(0x27, 16, 2);
+    lcd.backlight();
+    lcd.clear();
+    match lcd.print("I hate Rust .l.") {
+        Ok(_) => {}
+        Err(_) => println!("Failed 1"),
     }
+    lcd.set_cursor(0, 1);
+    match lcd.print("I love Rust <3") {
+        Ok(_) => {}
+        Err(e) => match e {
+            liquid_crystal::LiquidCrystalError::BufferOverflow => println!("Buffer Overflow"),
+            liquid_crystal::LiquidCrystalError::InvalidSize(n) => println!("Invalid size: {}", n),
+        },
+    }
+
+    // unsafe {
+    //     let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
+    //     lcd.begin(16, 2, 0);
+    //     lcd.init();
+    //     lcd.backlight();
+    //
+    //     lcd.clear();
+    //     lcd.printstr("Good morning\0".as_ptr().cast());
+    //     lcd.setCursor(0, 1);
+    //     lcd.printstr("from Rust!! .L.\0".as_ptr().cast());
+    // }
 
     println!("Started ...");
 
