@@ -165,12 +165,14 @@ fn main() -> ! {
         Ok(_) => {}
         Err(_) => println!("Failed 1"),
     }
-    lcd.set_cursor(0, 1);
+    let _ = lcd.set_cursor(0, 1);
     match lcd.print("I love Rust <3") {
         Ok(_) => {}
         Err(e) => match e {
             liquid_crystal::LiquidCrystalError::BufferOverflow => println!("Buffer Overflow"),
-            liquid_crystal::LiquidCrystalError::InvalidSize(n) => println!("Invalid size: {}", n),
+            liquid_crystal::LiquidCrystalError::InvalidSize(n, l) => {
+                println!("Invalid size: {}/{}", n, l)
+            }
         },
     }
 

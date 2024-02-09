@@ -2,8 +2,6 @@ use core::ffi::c_char;
 
 use crate::bindings::c_bindings::LiquidCrystal_I2C;
 
-use super::bindings;
-
 pub struct LiquidCrystal {
     lc: LiquidCrystal_I2C,
     cols: u8,
@@ -14,7 +12,7 @@ const BUFFER_SIZE: usize = 32;
 
 pub enum LiquidCrystalError {
     BufferOverflow,
-    InvalidSize(u8),
+    InvalidSize(u8, u8),
 }
 
 impl LiquidCrystal {
@@ -36,8 +34,17 @@ impl LiquidCrystal {
         unsafe { self.lc.clear() }
     }
 
-    pub fn set_cursor(&mut self, x: u8, y: u8) {
+    pub fn set_cursor(&mut self, x: u8, y: u8) -> Result<(), LiquidCrystalError> {
+        if x > self.cols {
+            return Err(LiquidCrystalError::InvalidSize(x, self.cols));
+        }
+
+        if y > self.rows {
+            return Err(LiquidCrystalError::InvalidSize(y, self.rows));
+        }
+
         unsafe { self.lc.setCursor(x, y) }
+        Ok(())
     }
 
     pub fn print(&mut self, s: &str) -> Result<(), LiquidCrystalError> {
@@ -47,7 +54,10 @@ impl LiquidCrystal {
             return Err(LiquidCrystalError::BufferOverflow);
         }
         if bytes.len() >= self.cols as usize {
-            return Err(LiquidCrystalError::InvalidSize(bytes.len() as u8));
+            return Err(LiquidCrystalError::InvalidSize(
+                bytes.len() as u8,
+                self.cols,
+            ));
         }
 
         let mut buffer: [c_char; BUFFER_SIZE] = [0; BUFFER_SIZE];
