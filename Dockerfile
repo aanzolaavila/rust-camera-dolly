@@ -32,10 +32,16 @@ RUN arduino-cli core update-index; \
 RUN arduino-cli core install arduino:avr
 # RUN arduino-cli lib install "LiquidCrystal"
 
-RUN mkdir -p $HOME/Arduino/libraries ; wget https://github.com/johnrickman/LiquidCrystal_I2C/archive/refs/tags/1.1.3.tar.gz -O liquidcrystal.tar.gz \
+RUN mkdir -p $HOME/Arduino/libraries \
+	wget https://github.com/johnrickman/LiquidCrystal_I2C/archive/refs/tags/1.1.3.tar.gz -O liquidcrystal.tar.gz \
 	&& tar xf liquidcrystal.tar.gz -C $HOME/Arduino/libraries \
-	&& rm liquidcrystal.tar.gz
-RUN cd ${HOME}/Arduino/libraries && mv LiquidCrystal_I2C-1.1.3 LiquidCrystal_I2C
+	&& rm liquidcrystal.tar.gz \
+	cd ${HOME}/Arduino/libraries && mv LiquidCrystal_I2C-1.1.3 LiquidCrystal_I2C
+
+RUN mkdir -p $HOME/Arduino/libraries \
+	wget www.airspayce.com/mikem/arduino/AccelStepper/AccelStepper-1.64.zip -O accelstepper.zip \
+	&& unzip accelstepper.zip -d $HOME/Arduino/libraries \
+	&& rm accelstepper.zip
 
 # Build your application
 CMD ["rustup", "run", "nightly", "cargo", "build", "--release"]

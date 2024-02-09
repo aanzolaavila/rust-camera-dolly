@@ -137,7 +137,7 @@ fn files_in_folder(folder: &str, pattern: &str) -> Vec<PathBuf> {
 
 pub fn add_source_file(builder: &mut Build, files: Vec<PathBuf>) {
     for file in files {
-        // println!("cargo:rerun-if-changed={}", file.to_string_lossy());
+        println!("cargo:rerun-if-changed={}", file.to_string_lossy());
         builder.file(file);
     }
 }
@@ -228,14 +228,15 @@ fn generate_bindings(config: &Config) {
         .join("dolly")
         .join("components")
         .join("arduino")
-        .join("bindings.rs");
+        .join("bindings")
+        .join("c_bindings.rs");
     bindings
         .write_to_file(project_root)
         .expect("Couldn't write bindings!");
 }
 
 fn main() {
-    // println!("cargo:rerun-if-changed={}", CONFIG_FILE);
+    println!("cargo:rerun-if-changed={}", CONFIG_FILE);
     let config_string = std::fs::read_to_string(CONFIG_FILE)
         .unwrap_or_else(|e| panic!("Unable to read {} file: {}", CONFIG_FILE, e));
     let config: Config = serde_yaml::from_str(&config_string)
@@ -245,5 +246,4 @@ fn main() {
 
     compile_arduino(&config);
     generate_bindings(&config);
-    // panic!();
 }

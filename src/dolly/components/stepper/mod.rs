@@ -1,3 +1,6 @@
+use arduino_hal::port::mode::Output;
+use arduino_hal::port::Pin;
+
 #[allow(dead_code)]
 pub enum Direction {
     Clockwise,

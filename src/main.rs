@@ -90,9 +90,9 @@ fn configure_interrupts(dp: &Peripherals) {
     })
 }
 
-extern "C" {
-    fn init();
-}
+// extern "C" {
+//     fn init();
+// }
 
 #[arduino_hal::entry]
 fn main() -> ! {

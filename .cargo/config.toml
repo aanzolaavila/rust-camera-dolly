@@ -1,5 +1,6 @@
+[unstable]
+# features = ["host_dep"]
+build-std = ["core"]
+
 [build]
 target = "avr-atmega328p.json"
-
-[unstable]
-build-std = ["core"]
