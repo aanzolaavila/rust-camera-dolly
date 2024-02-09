@@ -10,7 +10,7 @@ pub struct AdcManager;
 
 impl AdcManager {
     pub fn initialize(adc: AdcConcreteType) {
-        // this could be handled better to check double initiation
+        // TODO: this could be handled better to check double initiation
         unsafe {
             GLOBAL_ADC = Mutex::new(RefCell::new(Some(adc)));
         }

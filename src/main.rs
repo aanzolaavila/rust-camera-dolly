@@ -90,10 +90,6 @@ fn configure_interrupts(dp: &Peripherals) {
     })
 }
 
-// extern "C" {
-//     fn init();
-// }
-
 #[arduino_hal::entry]
 fn main() -> ! {
     avr_device::interrupt::disable();
@@ -162,8 +158,6 @@ fn main() -> ! {
     unsafe { avr_device::interrupt::enable() };
 
     println!("Started ...");
-
-    // unsafe { init() };
 
     loop {
         dolly.run();
