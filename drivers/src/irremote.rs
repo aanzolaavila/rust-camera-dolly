@@ -117,16 +117,16 @@ impl IRRemote {
     }
 }
 
-#[avr_device::interrupt(atmega328p)]
-fn TIMER0_COMPA() {
-    let recv = unsafe { RECEIVER.as_mut().unwrap() };
-
-    if let Ok(Some(cmd)) = recv.poll() {
-        // Command received
-
-        avr_device::interrupt::free(|cs| {
-            let cell = CMD.borrow(cs);
-            cell.set(Some(cmd));
-        });
-    }
-}
+// #[avr_device::interrupt(atmega328p)]
+// fn TIMER0_COMPA() {
+//     let recv = unsafe { RECEIVER.as_mut().unwrap() };
+//
+//     if let Ok(Some(cmd)) = recv.poll() {
+//         // Command received
+//
+//         avr_device::interrupt::free(|cs| {
+//             let cell = CMD.borrow(cs);
+//             cell.set(Some(cmd));
+//         });
+//     }
+// }

@@ -13,10 +13,10 @@ static CLOCK_TC0: ClockTC0 = ClockTC0::new();
 
 // TODO: Test with TIMER0, TIMER1, TIMER0 and TIMER1 for implementing this Clock
 
-// #[avr_device::interrupt(atmega328p)]
-// fn TIMER0_COMPA() {
-//     CLOCK_TC0.tick();
-// }
+#[avr_device::interrupt(atmega328p)]
+fn TIMER0_COMPA() {
+    CLOCK_TC0.tick();
+}
 
 pub struct ClockTC0;
 

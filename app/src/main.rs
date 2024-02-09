@@ -4,6 +4,7 @@
 
 use arduino_core::println;
 use arduino_hal::{prelude::*, Peripherals};
+use binding::bindings::c_bindings::LiquidCrystal_I2C;
 use drivers::arduino::io::{DigitalWrite, State};
 
 use drivers::arduino::adc_manager::AdcManager;
@@ -154,6 +155,20 @@ fn main() -> ! {
 
     // Enable interrupts globally
     unsafe { avr_device::interrupt::enable() };
+
+    println!("Configuring LCD ...");
+
+    unsafe {
+        let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
+        lcd.begin(16, 2, 0);
+        lcd.init();
+        lcd.backlight();
+
+        lcd.clear();
+        lcd.printstr("Good morning\0".as_ptr().cast());
+        lcd.setCursor(0, 1);
+        lcd.printstr("from Rust!! .L.\0".as_ptr().cast());
+    }
 
     println!("Started ...");
 
