@@ -1,4 +1,4 @@
-use core::ffi::c_char;
+use core::{ffi::c_char, fmt::Write};
 
 use crate::bindings::c_bindings::LiquidCrystal_I2C;
 
@@ -15,6 +15,11 @@ pub enum LiquidCrystalError {
     InvalidSize(u8, u8),
 }
 
+pub enum Backlight {
+    On,
+    Off,
+}
+
 impl LiquidCrystal {
     pub fn new(addr: u8, cols: u8, rows: u8) -> Self {
         let mut lc = unsafe { LiquidCrystal_I2C::new(addr, cols, rows) };
@@ -26,8 +31,11 @@ impl LiquidCrystal {
         Self { lc, cols, rows }
     }
 
-    pub fn backlight(&mut self) {
-        unsafe { self.lc.backlight() }
+    pub fn backlight(&mut self, b: Backlight) {
+        match b {
+            Backlight::On => unsafe { self.lc.backlight() },
+            Backlight::Off => unsafe { self.lc.noBacklight() },
+        }
     }
 
     pub fn clear(&mut self) {
@@ -74,5 +82,14 @@ impl LiquidCrystal {
         }
 
         Ok(())
+    }
+}
+
+impl Write for LiquidCrystal {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        match self.print(s) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(core::fmt::Error),
+        }
     }
 }

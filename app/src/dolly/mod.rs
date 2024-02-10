@@ -1,7 +1,9 @@
+use core::fmt::Write;
 use core::ops::Range;
 
 use arduino_core::println;
 
+use binding::liquid_crystal::{Backlight, LiquidCrystal};
 use drivers::{
     arduino::{
         io::{DigitalWrite, State},
@@ -18,6 +20,7 @@ pub struct Settings {
     pub builtin_led: DigitalOutput,
     pub in_led: DigitalOutput,
     pub out_led: DigitalOutput,
+    pub lcd: LiquidCrystal,
 }
 
 struct Position {
@@ -81,8 +84,25 @@ impl Dolly {
             false => self.cfg.out_led.write(State::LOW),
         }
 
-        println!("Current time: {}", self.cfg.tc1_clock.now());
+        let mut t = (self.cfg.tc0_clock.now() - 5_000) / 1000 as u32;
+        println!("Current time: {}", t);
 
-        arduino_hal::delay_ms(50);
+        let mut lcd = &mut self.cfg.lcd;
+
+        lcd.backlight(Backlight::On);
+        lcd.clear();
+
+        let h = t / 3600;
+        t %= 3600;
+        let m = t / 60;
+        t %= 60;
+        let s = t;
+
+        let _ = lcd.set_cursor(0, 0);
+        let _ = write!(lcd, "Current time:");
+        let _ = lcd.set_cursor(0, 1);
+        let _ = write!(lcd, "{h}h {m}m {s}s");
+
+        arduino_hal::delay_ms(1000);
     }
 }

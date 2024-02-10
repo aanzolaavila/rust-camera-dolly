@@ -8,7 +8,7 @@ use core::cell::Cell;
 
 use avr_device::interrupt::Mutex;
 
-static COUNTER_MICRO: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
+static COUNTER_MILLIS: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 static CLOCK_TC0: ClockTC0 = ClockTC0::new();
 
 // TODO: Test with TIMER0, TIMER1, TIMER0 and TIMER1 for implementing this Clock
@@ -20,10 +20,17 @@ fn TIMER0_COMPA() {
 
 pub struct ClockTC0;
 
+// NOTE: It seems that the Clock tick takes too long when doing interrupts,
+// therefore tinkering on the clock values, I found that leaving the prescaler
+// to a large value (albeit being a little less precise than lower values)
+// yields better precision overall, it should be done as a 'nice to have'
+// to improve the performance of the timer tick
+// At 250 Hz Target Freq - 256 Prescaler it has a ~2 second delay
+// after ~1h 40m (~100min)
 impl ClockTC0 {
     pub const CPU_FREQ: u32 = 16_000_000; // 16 MHz
-    pub const TARGET_FREQ: u32 = 20_000; // 20 KHz
-    pub const PRESCALER: u32 = 8;
+    pub const TARGET_FREQ: u32 = 250; // original 20 KHz
+    pub const PRESCALER: u32 = 256; // original 8
     pub const TIMER_COUNTS: u32 = (Self::CPU_FREQ / Self::TARGET_FREQ / Self::PRESCALER) - 1;
     pub const TIME_PER_OVERFLOW: u32 =
         Self::PRESCALER * Self::TIMER_COUNTS as u32 / (Self::CPU_FREQ / 1000);
@@ -58,14 +65,14 @@ impl ClockTC0 {
     }
 
     pub fn now(&self) -> u32 {
-        avr_device::interrupt::free(|cs| COUNTER_MICRO.borrow(cs).get())
+        avr_device::interrupt::free(|cs| COUNTER_MILLIS.borrow(cs).get())
     }
 
     pub fn tick(&self) {
         avr_device::interrupt::free(|cs| {
-            let c = COUNTER_MICRO.borrow(cs);
+            let c = COUNTER_MILLIS.borrow(cs);
             let v = c.get();
-            c.set(v.wrapping_add(1));
+            c.set(v.wrapping_add(4));
         });
     }
 }

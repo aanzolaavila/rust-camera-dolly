@@ -2,9 +2,11 @@
 #![no_main]
 #![feature(abi_avr_interrupt)]
 
+use core::fmt::Write;
+
 use arduino_core::println;
 use arduino_hal::{prelude::*, Peripherals};
-use binding::liquid_crystal;
+use binding::liquid_crystal::{self, Backlight};
 use drivers::arduino::io::{DigitalWrite, State};
 
 use drivers::arduino::adc_manager::AdcManager;
@@ -107,7 +109,7 @@ fn main() -> ! {
     tc0_clock.start(dp.TC0);
 
     let tc1_clock = ClockTC1::new();
-    tc1_clock.start(dp.TC1);
+    // tc1_clock.start(dp.TC1);
 
     println!("Camera Dolly setup ...");
 
@@ -143,6 +145,21 @@ fn main() -> ! {
         DigitalOutput::new(pin.downgrade())
     };
 
+    // Enable interrupts globally
+    unsafe { avr_device::interrupt::enable() };
+
+    let mut lcd = liquid_crystal::LiquidCrystal::new(0x27, 16, 2);
+    lcd.backlight(Backlight::On);
+    for i in 0..5 {
+        lcd.clear();
+        let _ = lcd.set_cursor(0, 0);
+        write!(lcd, "Starting ...");
+        let _ = lcd.set_cursor(0, 1);
+        let count = 5 - i;
+        write!(lcd, "{count}");
+        arduino_hal::delay_ms(1000);
+    }
+
     let settings = dolly::Settings {
         tc0_clock,
         tc1_clock,
@@ -150,43 +167,9 @@ fn main() -> ! {
         builtin_led,
         in_led,
         out_led,
+        lcd,
     };
     let mut dolly = dolly::Dolly::new(settings);
-
-    // Enable interrupts globally
-    unsafe { avr_device::interrupt::enable() };
-
-    println!("Configuring LCD ...");
-
-    let mut lcd = liquid_crystal::LiquidCrystal::new(0x27, 16, 2);
-    lcd.backlight();
-    lcd.clear();
-    match lcd.print("I hate Rust .l.") {
-        Ok(_) => {}
-        Err(_) => println!("Failed 1"),
-    }
-    let _ = lcd.set_cursor(0, 1);
-    match lcd.print("I love Rust <3") {
-        Ok(_) => {}
-        Err(e) => match e {
-            liquid_crystal::LiquidCrystalError::BufferOverflow => println!("Buffer Overflow"),
-            liquid_crystal::LiquidCrystalError::InvalidSize(n, l) => {
-                println!("Invalid size: {}/{}", n, l)
-            }
-        },
-    }
-
-    // unsafe {
-    //     let mut lcd = LiquidCrystal_I2C::new(0x27, 16, 2);
-    //     lcd.begin(16, 2, 0);
-    //     lcd.init();
-    //     lcd.backlight();
-    //
-    //     lcd.clear();
-    //     lcd.printstr("Good morning\0".as_ptr().cast());
-    //     lcd.setCursor(0, 1);
-    //     lcd.printstr("from Rust!! .L.\0".as_ptr().cast());
-    // }
 
     println!("Started ...");
 
