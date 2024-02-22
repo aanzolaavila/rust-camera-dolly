@@ -8,6 +8,8 @@ use core::cell::Cell;
 
 use avr_device::interrupt::Mutex;
 
+use super::Clock;
+
 static COUNTER_MILLIS: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 static CLOCK_TC0: ClockTC0 = ClockTC0::new();
 
@@ -18,6 +20,7 @@ fn TIMER0_COMPA() {
     CLOCK_TC0.tick();
 }
 
+#[derive(Clone)]
 pub struct ClockTC0;
 
 // NOTE: It seems that the Clock tick takes too long when doing interrupts,
@@ -64,15 +67,17 @@ impl ClockTC0 {
         tc0.timsk0.write(|w| w.ocie0a().set_bit());
     }
 
-    pub fn now(&self) -> u32 {
-        avr_device::interrupt::free(|cs| COUNTER_MILLIS.borrow(cs).get())
-    }
-
     pub fn tick(&self) {
         avr_device::interrupt::free(|cs| {
             let c = COUNTER_MILLIS.borrow(cs);
             let v = c.get();
             c.set(v.wrapping_add(4));
         });
+    }
+}
+
+impl Clock for ClockTC0 {
+    fn now(&self) -> u32 {
+        avr_device::interrupt::free(|cs| COUNTER_MILLIS.borrow(cs).get())
     }
 }

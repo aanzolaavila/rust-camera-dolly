@@ -3,10 +3,12 @@
 #![feature(abi_avr_interrupt)]
 
 use core::fmt::Write;
+use core::time::Duration;
 
 use arduino_core::println;
 use arduino_hal::{prelude::*, Peripherals};
 use binding::liquid_crystal::{self, Backlight};
+use drivers::accelstepper::{self, Driver, TickingClock};
 use drivers::arduino::io::{DigitalWrite, State};
 
 use drivers::arduino::adc_manager::AdcManager;
@@ -15,6 +17,7 @@ use drivers::arduino::pins::digital_pin::{DigitalInput, DigitalOutput};
 use drivers::joystick::Joystick;
 use drivers::timer::tc0::ClockTC0;
 use drivers::timer::tc1::ClockTC1;
+use drivers::timer::Clock;
 
 mod dolly;
 
@@ -113,7 +116,7 @@ fn main() -> ! {
 
     println!("Camera Dolly setup ...");
 
-    let joy_switch_pin = pins.d4.into_pull_up_input();
+    let joy_switch_pin = pins.d8.into_pull_up_input();
     let joy_x = pins.a0.into_analog_input(&mut adc);
     let joy_y = pins.a1.into_analog_input(&mut adc);
 
@@ -160,6 +163,20 @@ fn main() -> ! {
         arduino_hal::delay_ms(1000);
     }
 
+    let step_pin = {
+        let pin = pins.d3.into_output();
+        DigitalOutput::new(pin.downgrade())
+    };
+
+    let dir_pin = {
+        let pin = pins.d4.into_output();
+        DigitalOutput::new(pin.downgrade())
+    };
+
+    let stepper = accelstepper::AccelDevice::new(step_pin, dir_pin, Duration::from_micros(1));
+    let stepper_driver = Driver::new();
+    let sys_clock = TickingClock::new(tc0_clock.clone());
+
     let settings = dolly::Settings {
         tc0_clock,
         tc1_clock,
@@ -168,6 +185,9 @@ fn main() -> ! {
         in_led,
         out_led,
         lcd,
+        stepper,
+        stepper_driver,
+        sys_clock,
     };
     let mut dolly = dolly::Dolly::new(settings);
 

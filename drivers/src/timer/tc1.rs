@@ -8,6 +8,8 @@ use core::cell::Cell;
 
 use avr_device::interrupt::Mutex;
 
+use super::Clock;
+
 static COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 static CLOCK_TC1: ClockTC1 = ClockTC1::new();
 
@@ -53,15 +55,17 @@ impl ClockTC1 {
         tc1.timsk1.write(|w| w.ocie1a().set_bit());
     }
 
-    pub fn now(&self) -> u32 {
-        avr_device::interrupt::free(|cs| COUNTER.borrow(cs).get()) / Self::CORRECTION as u32
-    }
-
     pub fn tick(&self) {
         avr_device::interrupt::free(|cs| {
             let c = COUNTER.borrow(cs);
             let v = c.get();
             c.set(v.wrapping_add(Self::INCREMENT));
         });
+    }
+}
+
+impl Clock for ClockTC1 {
+    fn now(&self) -> u32 {
+        avr_device::interrupt::free(|cs| COUNTER.borrow(cs).get()) / Self::CORRECTION as u32
     }
 }

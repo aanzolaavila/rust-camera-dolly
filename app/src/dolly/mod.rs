@@ -5,12 +5,13 @@ use arduino_core::println;
 
 use binding::liquid_crystal::{Backlight, LiquidCrystal};
 use drivers::{
+    accelstepper::{self, AccelDevice, TickingClock},
     arduino::{
         io::{DigitalWrite, State},
         pins::digital_pin::DigitalOutput,
     },
     joystick::Joystick,
-    timer::{tc0::ClockTC0, tc1::ClockTC1},
+    timer::{tc0::ClockTC0, tc1::ClockTC1, Clock},
 };
 
 pub struct Settings {
@@ -21,6 +22,9 @@ pub struct Settings {
     pub in_led: DigitalOutput,
     pub out_led: DigitalOutput,
     pub lcd: LiquidCrystal,
+    pub stepper: AccelDevice,
+    pub stepper_driver: accelstepper::Driver,
+    pub sys_clock: TickingClock<ClockTC0>,
 }
 
 struct Position {
@@ -64,6 +68,14 @@ impl Dolly {
         v += out_min as f32;
 
         v as i32
+    }
+
+    pub fn setup(&mut self) {
+        let axis = &mut self.cfg.stepper_driver;
+        axis.set_max_speed(150.0);
+        axis.set_acceleration(100.0);
+        // axis.set_speed(200.0);
+        // axis.move_to(10_000);
     }
 
     pub fn run(&mut self) {

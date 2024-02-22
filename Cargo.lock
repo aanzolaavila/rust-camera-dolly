@@ -3,6 +3,16 @@
 version = 3
 
 [[package]]
+name = "accel-stepper"
+version = "0.1.1-alpha.0"
+dependencies = [
+ "arrayvec",
+ "embedded-hal 0.2.7",
+ "libm",
+ "void",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -32,6 +42,15 @@ dependencies = [
  "arduino-hal",
  "avr-device",
  "avr-hal-generic",
+]
+
+[[package]]
+name = "arrayvec"
+version = "0.4.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd9fd44efafa8690358b7408d253adf110036b88f55672a933f01d616ad9b1b9"
+dependencies = [
+ "nodrop",
 ]
 
 [[package]]
@@ -181,6 +200,7 @@ dependencies = [
 name = "drivers"
 version = "0.1.0"
 dependencies = [
+ "accel-stepper",
  "arduino-hal",
  "avr-device",
  "avr-hal-generic",
@@ -188,6 +208,7 @@ dependencies = [
  "libm",
  "panic-halt",
  "ufmt",
+ "void",
 ]
 
 [[package]]
@@ -409,6 +430,12 @@ name = "nb"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
+
+[[package]]
+name = "nodrop"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 
 [[package]]
 name = "nom"
